@@ -72,6 +72,18 @@ module BetterHtml
           assert_equal "erb interpolation in javascript tag must call '(...).to_json'", errors.first.message
         end
 
+        test "<script type='module'> tag without calls is unsafe" do
+          errors = validate(<<-EOF).errors
+            <script type="module">
+              if (a < 1) { <%= "unsafe" %> }
+            </script>
+          EOF
+
+          assert_equal 1, errors.size
+          assert_equal '<%= "unsafe" %>', errors.first.location.source
+          assert_equal "erb interpolation in javascript tag must call '(...).to_json'", errors.first.message
+        end
+
         test "javascript template without calls is unsafe" do
           errors = validate(<<-JS, template_language: :javascript).errors
             if (a < 1) { <%= "unsafe" %> }
@@ -94,9 +106,32 @@ module BetterHtml
           assert_equal "erb interpolation in javascript tag must call '(...).to_json'", errors.first.message
         end
 
+
+        test "unsafe erb in <script> tag with module content type" do
+          errors = validate(<<-EOF).errors
+            <script type="module">
+              if (a < 1) { <%= unsafe %> }
+            </script>
+          EOF
+
+          assert_equal 1, errors.size
+          assert_equal "<%= unsafe %>", errors.first.location.source
+          assert_equal "erb interpolation in javascript tag must call '(...).to_json'", errors.first.message
+        end
+
         test "<script> with to_json is safe" do
           errors = validate(<<-EOF).errors
             <script type="text/javascript">
+              <%= unsafe.to_json %>
+            </script>
+          EOF
+
+          assert_predicate errors, :empty?
+        end
+
+        test "<script type='module'> with to_json is safe" do
+          errors = validate(<<-EOF).errors
+            <script type="module">
               <%= unsafe.to_json %>
             </script>
           EOF
@@ -115,6 +150,16 @@ module BetterHtml
         test "<script> with raw and to_json is safe" do
           errors = validate(<<-EOF).errors
             <script type="text/javascript">
+              <%= raw unsafe.to_json %>
+            </script>
+          EOF
+
+          assert_predicate errors, :empty?
+        end
+
+        test "<script type='module'> with raw and to_json is safe" do
+          errors = validate(<<-EOF).errors
+            <script type="module">
               <%= raw unsafe.to_json %>
             </script>
           EOF

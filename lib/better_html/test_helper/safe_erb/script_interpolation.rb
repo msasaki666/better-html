@@ -9,7 +9,7 @@ module BetterHtml
       class ScriptInterpolation < Base
         def validate
           script_tags.each do |tag, content_node|
-            if content_node.present? && (tag.attributes["type"]&.value || "text/javascript") == "text/javascript"
+            if content_node.present? && javascript_tag_content_types.include?(tag.attributes["type"]&.value || "text/javascript")
               validate_script(content_node)
             end
           end
@@ -68,6 +68,10 @@ module BetterHtml
               )
             end
           end
+        end
+
+        def javascript_tag_content_types
+          %w[text/javascript module]
         end
       end
     end
